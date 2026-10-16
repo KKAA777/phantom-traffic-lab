@@ -2499,7 +2499,11 @@ table.pt td .key { display: inline-block; width: 12px; height: 3px; border-radiu
     let bx = x - tw / 2 - padX;
     if (opt.align === 'left') bx = x;
     if (opt.align === 'right') bx = x - tw - 2 * padX;
-    const by = y - hgt / 2;
+    let by = y - hgt / 2;
+    if (opt.bounds) {                     // keep the whole pill on the canvas (labels near the edge of the road)
+      bx = Math.max(2, Math.min(opt.bounds.w - 2 - (tw + 2 * padX), bx));
+      by = Math.max(2, Math.min(opt.bounds.h - 2 - hgt, by));
+    }
     if (opt.bg) {
       c.fillStyle = opt.bg;
       roundRect(c, bx, by, tw + 2 * padX, hgt, hgt / 2);
@@ -2509,7 +2513,7 @@ table.pt td .key { display: inline-block; width: 12px; height: 3px; border-radiu
     c.fillStyle = opt.color || C.ink;
     c.textBaseline = 'middle';
     c.textAlign = 'left';
-    c.fillText(text, bx + padX, y + 0.5);
+    c.fillText(text, bx + padX, by + hgt / 2 + 0.5);
     return { x: bx, y: by, w: tw + 2 * padX, h: hgt };
   }
 
@@ -2696,7 +2700,7 @@ table.pt td .key { display: inline-block; width: 12px; height: 3px; border-radiu
         c.beginPath(); c.arc(p.x, p.y, ringR, 0, TAU); c.stroke();
         if (this.labelPlatoon || q === 0) {
           const lp = T.at(sim.pos(i) * k, -T.rw / 2 - (q % 2 ? 30 : 16));
-          label(c, '#' + (i + 1), lp.x, lp.y, { size: 10, bg: C.surface, color: C.ink, ring: C.series[q % 6], padX: 4 });
+          label(c, '#' + (i + 1), lp.x, lp.y, { size: 10, bg: C.surface, color: C.ink, ring: C.series[q % 6], padX: 4, bounds: T });
         }
       }
       // selected car
@@ -2705,7 +2709,7 @@ table.pt td .key { display: inline-block; width: 12px; height: 3px; border-radiu
         c.strokeStyle = C.ink; c.lineWidth = 2;
         c.beginPath(); c.arc(p.x, p.y, Math.max(len, wid) / 2 + 5, 0, TAU); c.stroke();
         const lp = T.at(sim.pos(i) * k, T.rw / 2 + 22);
-        label(c, '#' + (i + 1) + ' · ' + Math.round(sim.V[i] * KMH) + ' km/h', lp.x, lp.y, { size: 11, bg: C.ink, color: C.surface, padX: 6 });
+        label(c, '#' + (i + 1) + ' · ' + Math.round(sim.V[i] * KMH) + ' km/h', lp.x, lp.y, { size: 11, bg: C.ink, color: C.surface, padX: 6, bounds: T });
       }
       // a car named in an explanation (e.g. on pause) pulses briefly
       if (this.flash && this.flash.until > performance.now() && this.flash.car < N) {
@@ -2741,8 +2745,9 @@ table.pt td .key { display: inline-block; width: 12px; height: 3px; border-radiu
       c.lineWidth = 3; c.lineCap = 'round';
       c.strokeStyle = C.wave; c.fillStyle = C.wave;
       arc(front, front - span, off);
-      const lw = T.at((front - span * 0.5) * k, off - 16);
-      label(c, '拥堵波 ' + Math.round(w * KMH) + ' km/h', lw.x, lw.y, { size: 11, bg: C.surface, color: C.wave, ring: C.wave });
+      // the two labels sit at different points along the arrows, so they never touch where the road runs vertically
+      const lw = T.at((front - span * 0.3) * k, off - 16);
+      label(c, '拥堵波 ' + Math.round(w * KMH) + ' km/h', lw.x, lw.y, { size: 11, bg: C.surface, color: C.wave, ring: C.wave, bounds: T });
       // car arrow: outside the road, pointing forwards
       let vs = 0, n = 0;
       for (let i = 0; i < sim.N; i++) { vs += sim.V[i]; n++; }
@@ -2750,9 +2755,9 @@ table.pt td .key { display: inline-block; width: 12px; height: 3px; border-radiu
       c.strokeStyle = C.carflow; c.fillStyle = C.carflow;
       arc(front - span, front, T.rw / 2 + 12);
       let clash = false;
-      if (this.selectedPos != null) { let d = Math.abs(this.selectedPos - (front - span * 0.5)) % L; d = Math.min(d, L - d); clash = d < span * 0.5 + 40; }
-      const lc = T.at((front - span * 0.5) * k, T.rw / 2 + (clash ? 48 : 30));
-      label(c, '汽车 +' + Math.round(vm * KMH) + ' km/h', lc.x, lc.y, { size: 11, bg: C.surface, color: C.carflow, ring: C.carflow });
+      if (this.selectedPos != null) { let d = Math.abs(this.selectedPos - (front - span * 0.75)) % L; d = Math.min(d, L - d); clash = d < span * 0.5 + 40; }
+      const lc = T.at((front - span * 0.75) * k, T.rw / 2 + (clash ? 48 : 30));
+      label(c, '汽车 +' + Math.round(vm * KMH) + ' km/h', lc.x, lc.y, { size: 11, bg: C.surface, color: C.carflow, ring: C.carflow, bounds: T });
       c.lineCap = 'butt';
     }
 
